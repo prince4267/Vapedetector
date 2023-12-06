@@ -1,0 +1,76 @@
+#include <EspSoftwareSerial.h>
+
+// Stored pins in variables
+#define gasSensor A0
+#define buzzer 0
+#define ledGreen 1
+#define ledRed 2
+#define VAPE_THRESHOLD 700  // Adjust this value based on sensor characteristics
+#define GSM_RX 3  // Replace with the actual RX pin of your GSM module
+#define GSM_TX 4  // Replace with the actual TX pin of your GSM module
+
+EspSoftwareSerial mySerial(GSM_RX, GSM_TX); // Create a SoftwareSerial object for GSM module
+
+void setup() {
+  // Initializing all pins
+  pinMode(gasSensor, INPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledRed, OUTPUT);
+
+  // Initialize Serial communication for debugging
+  Serial.begin(9600);
+
+  // Initialize SoftwareSerial for GSM module
+  mySerial.begin(9600);
+}
+
+void loop() {
+  // Read data from the gas sensor
+  int gas_value = analogRead(gasSensor);
+
+  // Check if gas value exceeds the vape threshold
+  if (gas_value > VAPE_THRESHOLD) {
+    // Activate alarm and send message
+    activateAlarm();
+    sendAlertMessage();
+    delay(60000); // Wait for 60 seconds to avoid continuous notifications
+  } else {
+    // Reset alarm and indicate normal condition
+    resetAlarm();
+  }
+
+  delay(200);
+}
+
+void activateAlarm() {
+  tone(buzzer, 1000, 500);
+  digitalWrite(ledRed, HIGH);
+  digitalWrite(ledGreen, LOW);
+}
+
+void resetAlarm() {
+  noTone(buzzer);
+  digitalWrite(ledGreen, HIGH);
+  digitalWrite(ledRed, LOW);
+}
+
+void sendAlertMessage() {
+  // Replace the following message and phone number with your desired content
+  String message = "Vape/smoke detected in washroom! Please investigate.";
+
+  // Replace the following phone number with the school office's phone number
+  String phoneNumber = "6475334267";
+
+  // Send AT commands to initialize GSM module and send SMS
+  mySerial.println("AT+CMGF=1"); // Set SMS mode to text
+  delay(1000);
+  mySerial.print("AT+CMGS=\"");
+  mySerial.print(phoneNumber);
+  mySerial.println("\"");
+  delay(1000);
+  mySerial.print(message);
+  delay(1000);
+  mySerial.write(26); // End the SMS message with Ctrl+Z
+  delay(1000);
+}
